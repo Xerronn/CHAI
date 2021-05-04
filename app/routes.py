@@ -1,10 +1,17 @@
 from app import app, ask
+from app.forms import LoginForm
 from flask import render_template
 from flask_ask import statement, question, session, request, context
 
 @app.route('/')
 def index():
-    return "Welcome to Chai"
+    return render_template('index.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    return render_template('login.html', title='Sign In', form=form)
 
 
 @ask.launch
