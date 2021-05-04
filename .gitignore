@@ -1,0 +1,5 @@
+env/
+ngrok.exe
+*.pyc
+*.pyo
+.vscode

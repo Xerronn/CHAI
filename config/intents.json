@@ -1,0 +1,63 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "chicken nugget test",
+            "intents": [
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": [
+                        "i'm done",
+                        "stop"
+                    ]
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NoIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.YesIntent",
+                    "samples": []
+                },
+                {
+                    "name": "WhatAreMyClassesIntent",
+                    "slots": [],
+                    "samples": [
+                        "what are my classes this semester",
+                        "what classes do I have",
+                        "what are my current classes",
+                        "What are my classes"
+                    ]
+                },
+                {
+                    "name": "WhatAreMyUpcomingAssignmentsIntent",
+                    "slots": [],
+                    "samples": [
+                        "do I have anything due soon",
+                        "do I have anything due",
+                        "what assignments do I have coming up",
+                        "what do I have to do",
+                        "What are my assignments"
+                    ]
+                },
+                {
+                    "name": "WhatAreMyGradesIntent",
+                    "slots": [],
+                    "samples": [
+                        "What are my current grades",
+                        "How am I doing in my classes",
+                        "What are my grades"
+                    ]
+                }
+            ],
+            "types": []
+        }
+    }
+}
