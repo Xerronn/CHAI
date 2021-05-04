@@ -10,6 +10,7 @@ Flask==0.12.1
 Flask-Ask==0.9.7
 Flask-Migrate==2.7.0
 Flask-SQLAlchemy==2.5.1
+Flask-WTF==0.14.3
 greenlet==1.0.0
 idna==2.10
 itsdangerous==1.1.0
@@ -31,3 +32,4 @@ SQLAlchemy==1.4.13
 toml==0.10.2
 urllib3==1.26.4
 Werkzeug==0.16.0
+WTForms==2.3.3
