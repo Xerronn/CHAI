@@ -1,5 +1,9 @@
 import os
 
-#loaded in __init__.py
 class Config(object):
+    """Set flask config variables"""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'chai-is-the-best-tea'
+
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'sqlite:///' + os.path.join(basedir, 'app.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
