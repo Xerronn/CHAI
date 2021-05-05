@@ -12,7 +12,7 @@ ask = Ask(app, "/")
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-logging.getLogger("flask_ask").setLevel(logging.DEBUG)
-log = logging.getLogger()
+# logging.getLogger("flask_ask").setLevel(logging.DEBUG)
+# log = logging.getLogger()
 
 from app import routes, models

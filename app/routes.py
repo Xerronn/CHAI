@@ -1,5 +1,6 @@
-from app import app, ask
+from app import app, ask, db
 from app.forms import LoginForm
+from app.models import User
 from flask import render_template
 from flask_ask import statement, question, session, request, context
 
@@ -16,18 +17,29 @@ def login():
 
 @ask.launch
 def init():
+    #check if the echo has an account registered in the database
+    isExistingUser = db.session.query(User.id).filter_by(echo_id=context.System.device.deviceId).first() is not None
+    
+    message = ''
+    cardText = ''
+    if not isExistingUser:
+        message = render_template('newUser')
+        cardText = "Do you want to register a new account for this echo?"
+        session.attributes["binaryQuestion"] = "register_account"
+    else:
+        welcome_msg = render_template('intro')
+        help_msg = render_template('help')
+        message = welcome_msg + ' ' + help_msg
+        cardText = "Welcome to CHAI"
 
-    welcome_msg = render_template('intro')
-    help_msg = render_template('help')
-
-    return question(welcome_msg + ' ' + help_msg).simple_card(title="ChAI", content="Welcome to CHAI")
+    return question(message).simple_card(title="ChAI", content=cardText)
 
 
 @ask.intent("AMAZON.HelpIntent" or "AMAZON.NoIntent")
 def help():
 
     help_msg = render_template('help')
-    print("Device ID: {}".format(context.System.device.deviceId))
+    print("Device ID: {}".format(len(context.System.device.deviceId)))
     return question(help_msg).reprompt(help_msg)
 
 
@@ -43,8 +55,11 @@ def stop():
 def yes():
     binaryQuestion = session.attributes["binaryQuestion"]
 
+    #ugh why does python not have a switch
     if binaryQuestion == "list_assignments":
         yes_message = f"Your upcoming assignments are {userAssignments}"
+    elif binaryQuestion == "register_account":
+        yes_message = "test"
     else:
         yes_message = render_template('help')
     
