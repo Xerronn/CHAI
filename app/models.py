@@ -8,6 +8,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     grades_password = db.Column(db.Integer)
     echo = db.Column(db.Integer, db.ForeignKey('echo.id'))
+    token = db.Column(db.String(128))
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

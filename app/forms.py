@@ -27,3 +27,8 @@ class RegistrationForm(FlaskForm):
         user = User.query.filter_by(username=field.data).first()
         if user is not None:
             raise ValidationError('Username has already been registered')
+
+
+class TokenForm(FlaskForm):
+    token = StringField("Token", validators=[DataRequired()])
+    submit = SubmitField('Set Token')

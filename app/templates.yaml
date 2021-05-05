@@ -5,3 +5,5 @@ intro: Welcome to CHAI
 stop: Thanks for using CHAI!
 
 newUser: This echo device does not have a registered account. Do you want to register this device to a new account?
+
+noToken: Your Echo does not have a registered canvas API token.

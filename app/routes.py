@@ -1,9 +1,9 @@
 from app import app, ask, db
-from app.forms import LoginForm, VerificationForm, RegistrationForm
+from app.forms import LoginForm, VerificationForm, RegistrationForm, TokenForm
 from app.models import User, Echo
 from flask import redirect, render_template, url_for, session, flash
 from flask_ask import statement, question, request, context, session as ask_session
-from flask_login import current_user, login_user, logout_user
+from flask_login import current_user, login_user, logout_user, login_required
 from random import randint
 
 @app.route('/')
@@ -42,22 +42,36 @@ def verify():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated or session['verified'] == False or session['verified'] is None:
+    if current_user.is_authenticated or (session.get('verified') is None or session['verified'] == False):
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        echo = Echo.query.filter(Echo.id == session['echo'])
+        echo = Echo.query.filter(Echo.id == session['echo']).first()
         user = User(username=form.username.data, echo=session['echo'])
         echo.verified = True
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
+        session.pop('verified', None)
+        session.pop('echo', None)
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
 
 
-#@login_required is something I can do
+@login_required
+@app.route('/token', methods=['GET', 'POST'])
+def setToken():
+    form = TokenForm()
+    if form.validate_on_submit():
+        current_user.token = form.token.data
+        db.session.commit()
+        flash(f'New token has been successfully set {current_user.token}')
+        return redirect(url_for('index'))
+    return render_template('token.html', title='Set Token', form=form)
+
+
+@login_required
 @app.route('/logout')
 def logout():
     logout_user()
@@ -67,11 +81,11 @@ def logout():
 @ask.launch
 def init():
     #check if the echo has an account registered in the database
-    isExistingUser = db.session.query(Echo.id).filter(Echo.echo_id == context.System.device.deviceId, Echo.verified == True).first() is not None
+    existingEcho = db.session.query(Echo.id).filter(Echo.echo_id == context.System.device.deviceId, Echo.verified == True).first()
     
     message = ''
     cardText = ''
-    if not isExistingUser:
+    if existingEcho is None:
         message = render_template('newUser')
         cardText = "Do you want to register a new account for this echo?"
 
@@ -79,10 +93,16 @@ def init():
         ask_session.attributes["binaryQuestion"] = "register_account"
         ask_session.attributes["echoID"] = context.System.device.deviceId
     else:
-        welcome_msg = render_template('intro')
-        help_msg = render_template('help')
-        message = welcome_msg + ' ' + help_msg
-        cardText = "Welcome to CHAI"
+        userToken = db.session.query(User.token).filter(User.echo == existingEcho[0]).first()[0]
+        print(userToken)
+        if userToken is None:
+            message = render_template('noToken')
+        else:
+            message = userToken
+            # welcome_msg = render_template('intro')
+            # help_msg = render_template('help')
+            # message = welcome_msg + ' ' + help_msg
+            cardText = "Welcome to CHAI"
 
     return question(message).simple_card(title="ChAI", content=cardText)
 
