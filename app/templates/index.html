@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Welcome to ChAI</h1>
+    {% if current_user.is_anonymous %}
+        <h1>Welcome to ChAI</h1>
+    {% else %}
+        <h1>Welcome to ChAI, {{ current_user.username }}</h1>
+    {% endif %}
 {% endblock %}

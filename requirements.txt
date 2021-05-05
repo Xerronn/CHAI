@@ -8,6 +8,7 @@ click==7.1.2
 cryptography==3.4.7
 Flask==0.12.1
 Flask-Ask==0.9.7
+Flask-Login==0.5.0
 Flask-Migrate==2.7.0
 Flask-SQLAlchemy==2.5.1
 Flask-WTF==0.14.3
