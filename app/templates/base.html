@@ -1,10 +1,8 @@
 <html>
     <head>
       <title>Welcome to ChAI</title>
-	  <link rel="icon" href="Chai.png" type="image/icon">
-	  <link rel="stylesheet" href="styling.css">
-	  <!-- <link rel="icon" href="{{ url_for('static', filename='styling.css') }}"> -->
-	  <!-- <link rel="stylesheet" href="{{ url_for('static', filename='styling.css') }}"> -->
+	  <link rel="icon" href="{{ url_for('static', filename='styling.css') }}">
+	  <link rel="stylesheet" href="{{ url_for('static', filename='styling.css') }}">
     </head>
     <body>
 		<h1>
@@ -18,7 +16,6 @@
 		<div class="container">
 			<!-- Sidebar -->
 			<aside class="container__sidebar">
-				{% block content %}{% endblock %}
 				<a href="{{ url_for('index') }}">Home</a> <br />
 				{% if current_user.is_anonymous %}
 				<a href="{{ url_for('login') }}">Login</a> <br />
@@ -27,6 +24,7 @@
 				<a href="{{ url_for('setToken') }}">Set Token</a> <br />
 				<a href="{{ url_for('logout') }}">Logout</a> <br />
 				{% endif %}
+				{% block content %}{% endblock %}
 			</aside>
 			
 			<!-- Main -->
