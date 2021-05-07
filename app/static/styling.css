@@ -23,6 +23,9 @@ form {
 
 .container {
     display: flex;
+	
+	margin: auto;
+	text-align: center;
 }
 
 .container__sidebar {
@@ -31,7 +34,7 @@ form {
 
 .container__main {
 	margin: auto
-	text-align: ;
+	text-align: center;
 	
     /* Take the remaining width */
     flex: 1;
