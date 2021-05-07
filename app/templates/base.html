@@ -13,16 +13,16 @@
 			Sam Carlson, Tyler Ho, Dylan Jezo, Zach Onisick, Sebastian Palacios, Jeffrey Ponce
 		</h2>
         <hr>	
-		<div class="container">
+				<div class="container">
 			<!-- Sidebar -->
 			<aside class="container__sidebar">
-				<a href="{{ url_for('index') }}">Home</a> <br />
+				<a href="{{ url_for('index') }}">Home</a>
 				{% if current_user.is_anonymous %}
-				<a href="{{ url_for('login') }}">Login</a> <br />
-				<a href="{{ url_for('verify') }}">New Echo</a> <br />
+				<a href="{{ url_for('login') }}">Login</a>
+				<a href="{{ url_for('verify') }}">New Echo</a>
 				{% else %}
-				<a href="{{ url_for('setToken') }}">Set Token</a> <br />
-				<a href="{{ url_for('logout') }}">Logout</a> <br />
+				<a href="{{ url_for('setToken') }}">Set Token</a>
+				<a href="{{ url_for('logout') }}">Logout</a>
 				{% endif %}
 				{% block content %}{% endblock %}
 			</aside>
@@ -42,3 +42,4 @@
 		</div>
     </body>
 </html>
+
