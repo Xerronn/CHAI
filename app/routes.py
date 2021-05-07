@@ -7,7 +7,7 @@ from flask_login import current_user, login_user, logout_user, login_required
 from random import randint
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 @app.route('/')
@@ -128,11 +128,11 @@ def init():
     return question(message).simple_card(title="ChAI", content=cardText)
 
 
-@ask.intent("AMAZON.HelpIntent" or "AMAZON.NoIntent")
+@ask.intent("AMAZON.NoIntent")
+@ask.intent("AMAZON.HelpIntent")
 def help():
 
     help_msg = render_template('help')
-    print("Device ID: {}".format(len(context.System.device.deviceId)))
     return question(help_msg).reprompt(help_msg)
 
 
@@ -140,7 +140,6 @@ def help():
 def stop():
 
     stop_message = render_template('stop')
-
     return statement(stop_message)
 
 
@@ -170,6 +169,13 @@ def yes():
             yes_message = f"Navigate to {addCommas(addSpaces(flask_request.url_root))}verify, and enter in the following code" + ': ' + addPeriods(addSpaces(str(existingCode[0])))
             yes_message += ". Say 'verified' when you are done."
             cardText = f"Navigate to {flask_request.url_root}verify and enter in the following code" + ': ' + str(existingCode[0])
+
+    elif binaryQuestion == "post_calendar":
+        files = ask_session.attributes["calendarFiles"]
+        response = requests.post('https://canvas.instructure.com/api/v1/calendar_events', headers=ask_session.attributes["headers"], files=files)
+        yes_message = "Your calendar has been successfully updated"
+        cardText = "Your calendar has been successfully updated"
+
     else:
         yes_message = render_template('help')
         cardText = render_template('help')
@@ -191,18 +197,24 @@ def getClasses():
     return question(classes_message)
 
 
-@ask.intent("WhatAreMyUpcomingAssignmentsIntent")
-def getAssignments():
+@ask.intent("WhatAreMyUpcomingAssignmentsIntent", default={'numdays': 5}, convert={'numdays': int})
+def getAssignments(numdays):
     initCourseDf()
     coursedf = pd.read_json(ask_session.attributes["coursedf"])
 
+    today = datetime.today()
+    futuredays = today + timedelta(days=numdays)
+    todaystr = today.strftime("%Y-%m-%d")
+    futurestr = futuredays.strftime("%Y-%m-%d")
+
     userAssignmentsList = []
     for i in coursedf['id']:
-        upcoming = requests.get(f'https://canvas.instructure.com/api/v1/courses/{i}/assignments?bucket=upcoming', headers=ask_session.attributes["headers"])
+        upcoming = requests.get(f'https://canvas.instructure.com/api/v1/users/{ask_session.attributes["userID"]}/calendar_events?per_page=100&start_date={todaystr}&end_date={futurestr}&context_codes[]=course_{i}&type=assignment', headers=ask_session.attributes["headers"])
         userAssignmentsList.append(pd.json_normalize(upcoming.json()))    
     all_upcoming_assignments = pd.concat(userAssignmentsList)
+    all_upcoming_assignments = all_upcoming_assignments.sort_values(by = ['start_at'])
         
-    userAssignments = ", ".join(list(all_upcoming_assignments['name'])).replace(':', '').replace('&', 'and').replace('-', ' ').replace('/', '')
+    userAssignments = ", ".join(list(all_upcoming_assignments['title'])).replace(':', '').replace('&', 'and').replace('-', ' ').replace('/', '')
 
     ask_session.attributes["binaryQuestion"] = "list_assignments"
 
@@ -223,6 +235,32 @@ def getGrades():
     grades_message = f"Your grades are {userGrades}"
 
     return question(grades_message)
+
+
+@ask.intent("SetCalendarIntent", default={'date': datetime.today().strftime('%Y-%m-%d'), 'time': '12:00'})
+def setCalendar(title, date, time):
+    #hard coded to EST, needs adjustment for the future if this ever gets built on
+    add4 = str(int(time[:2]) + 4)
+    endhour = str(int(time[:2]) + 5)
+    if len(add4) == 1:
+        add4 = "0" + add4
+    if len(endhour) == 1:
+        endhour = "0" + endhour
+    time = add4 + time[2:]
+
+    startTime = date + 'T' + add4 + time[2:] + ":00Z"
+    endTime = date + 'T' + endhour + time[2:] + ":00Z"
+
+    files = {
+    'calendar_event[context_code]': (None, f'user_{ask_session.attributes["userID"]}'),
+    'calendar_event[title]': (None, f'{title}'),
+    'calendar_event[start_at]': (None, f'{startTime}'),
+    'calendar_event[end_at]': (None, f'{endTime}'),
+    }
+    ask_session.attributes["calendarFiles"] = files
+    ask_session.attributes["binaryQuestion"] = "post_calendar"
+
+    return question(f"Are you sure you want set a calendar event titled {title} on {date} at {add4 + time[2:]}?")
 
 
 #function to init coursedf in session attributes
