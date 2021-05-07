@@ -1,0 +1,28 @@
+body {
+    background: lightgrey;
+    font: 18px Arial;
+}
+h1 {
+    text-align:center;
+	color: Black;
+	font: 30px Arial;
+	
+}
+
+
+
+.container {
+    display: flex;
+}
+
+.container__sidebar {
+    width: 30%;
+}
+
+.container__main {
+    /* Take the remaining width */
+    flex: 1;
+
+    /* Make it scrollable */
+    overflow: auto;
+}
