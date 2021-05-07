@@ -1,7 +1,7 @@
 {
     "interactionModel": {
         "languageModel": {
-            "invocationName": "chicken nugget test",
+            "invocationName": "chai for senior",
             "intents": [
                 {
                     "name": "AMAZON.NavigateHomeIntent",
@@ -38,8 +38,18 @@
                 },
                 {
                     "name": "WhatAreMyUpcomingAssignmentsIntent",
-                    "slots": [],
+                    "slots": [
+                        {
+                            "name": "numdays",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
                     "samples": [
+                        "What assignments do I have due in the next {numdays} days",
+                        "What assignments do I have due",
+                        "what do I have due soon",
+                        "how many assignments do I have in the next {numdays} days",
+                        "do I have anything due in the next {numdays} days",
                         "do I have anything due soon",
                         "do I have anything due",
                         "what assignments do I have coming up",
@@ -55,9 +65,142 @@
                         "How am I doing in my classes",
                         "What are my grades"
                     ]
+                },
+                {
+                    "name": "VerifiedIntent",
+                    "slots": [],
+                    "samples": [
+                        "I am verified",
+                        "Verified"
+                    ]
+                },
+                {
+                    "name": "SetCalendarIntent",
+                    "slots": [
+                        {
+                            "name": "title",
+                            "type": "eventTitle"
+                        },
+                        {
+                            "name": "date",
+                            "type": "AMAZON.DATE"
+                        },
+                        {
+                            "name": "time",
+                            "type": "AMAZON.TIME"
+                        }
+                    ],
+                    "samples": [
+                        "set an event on my calendar to {title} on {date} at {time}",
+                        "set an event on my calendar to {title} on {date}",
+                        "set a reminder to {title} on {date} ",
+                        "remind me to {title} on {date}",
+                        "remind me to {title} on {date} at {time}",
+                        "set a reminder to {title} on {date} at {time}"
+                    ]
+                },
+                {
+                    "name": "WhatAreMyUpcomingEventsIntent",
+                    "slots": [
+                        {
+                            "name": "numdays",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "do I have any events in the next {numdays} days",
+                        "do I have any calendar events soon",
+                        "do I have any calendar events coming up",
+                        "Do I have any events coming up",
+                        "What do I have on my calendar for the next {numdays} days",
+                        "What do I have on my calendar",
+                        "What is on my calendar",
+                        "What events do I have in the next {numdays} days",
+                        "What are my upcoming events"
+                    ]
+                },
+                {
+                    "name": "PassphraseIntent",
+                    "slots": [
+                        {
+                            "name": "numOne",
+                            "type": "AMAZON.NUMBER"
+                        },
+                        {
+                            "name": "numTwo",
+                            "type": "AMAZON.NUMBER"
+                        },
+                        {
+                            "name": "numThree",
+                            "type": "AMAZON.NUMBER"
+                        },
+                        {
+                            "name": "numFour",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "{numOne} {numTwo} {numThree} {numFour}"
+                    ]
                 }
             ],
-            "types": []
+            "types": [
+                {
+                    "name": "eventTitle",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "zoom meeting"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "final exam "
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "final test period"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "test time"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "test is due"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "resubmit assignment"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "do something"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "help someone "
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "go to a place"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "assignment due"
+                            }
+                        }
+                    ]
+                }
+            ]
         }
     }
 }

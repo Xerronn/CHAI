@@ -1,5 +1,5 @@
 from app import app, ask, db
-from app.forms import LoginForm, VerificationForm, RegistrationForm, TokenForm
+from app.forms import LoginForm, VerificationForm, RegistrationForm, SettingsForm
 from app.models import User, Echo
 from flask import redirect, render_template, url_for, session, flash, request as flask_request
 from flask_ask import statement, question, request, context, session as ask_session
@@ -64,15 +64,19 @@ def register():
 
 
 @login_required
-@app.route('/token', methods=['GET', 'POST'])
-def setToken():
-    form = TokenForm()
+@app.route('/settings', methods=['GET', 'POST'])
+def setSettings():
+    form = SettingsForm()
     if form.validate_on_submit():
-        current_user.token = form.token.data
-        db.session.commit()
-        flash(f'New token has been successfully set {current_user.token}')
+        if form.token.data != "":
+            current_user.token = form.token.data
+            db.session.commit()
+            flash(f'New token has been successfully set {current_user.token}')
+        if form.passphrase.data != "":
+            current_user.grades_password = form.passphrase.data
+            db.session.commit()
         return redirect(url_for('index'))
-    return render_template('token.html', title='Set Token', form=form)
+    return render_template('settings.html', title='Settings', form=form)
 
 
 @login_required
@@ -99,7 +103,12 @@ def init():
         ask_session.attributes["echoID"] = context.System.device.deviceId
     else:
         #Get the user account linked to the echo
+        #should be ask_session.attributes, but its working so no need to fix it
         ask_session["user"] = db.session.query(User).filter(User.echo == existingEcho[0]).first()
+        
+        if ask_session["user"].grades_password is not None and ask_session.attributes.get("authenticated") is None:
+            ask_session.attributes["passphrase"] = ask_session["user"].grades_password
+            return question(render_template("passphrase")).simple_card(title="ChAI", content="Recite your four digit pass-phrase to continue")
 
         #check if the user has set a token
         userToken = ask_session["user"].token
@@ -128,6 +137,17 @@ def init():
     return question(message).simple_card(title="ChAI", content=cardText)
 
 
+@ask.intent("PassphraseIntent")
+def passphrase(numOne, numTwo, numThree, numFour):
+    combined = str(numOne) + str(numTwo) + str(numThree) + str(numFour)
+
+    if int(combined) == ask_session.attributes["passphrase"]:
+        ask_session.attributes["authenticated"] = True
+        return question("The passphrase is correct. Please say verifed to continue using the app")
+    else:
+        return question(f"The passphrase {combined} failed to authenticate. Please try again")
+
+
 @ask.intent("AMAZON.NoIntent")
 @ask.intent("AMAZON.HelpIntent")
 def help():
@@ -151,6 +171,9 @@ def yes():
     #ugh why does python not have a switch
     if binaryQuestion == "list_assignments":
         yes_message = f"Your upcoming assignments are {ask_session.attributes['userAssignments']}"
+    
+    elif binaryQuestion == "list_events":
+        yes_message = f"Your upcoming events are {ask_session.attributes['userEvents']}"
 
     elif binaryQuestion == "register_account":
         existingCode = db.session.query(Echo.code).filter(Echo.echo_id == context.System.device.deviceId).first()
@@ -177,6 +200,8 @@ def yes():
         cardText = "Your calendar has been successfully updated"
 
     else:
+        if ask_session.attributes.get("userID") is None:
+            return question(render_template("unauthorized2"))
         yes_message = render_template('help')
         cardText = render_template('help')
     
@@ -186,8 +211,10 @@ def yes():
 
 @ask.intent("WhatAreMyClassesIntent")
 def getClasses():
+    if ask_session.attributes.get("userID") is None:
+        return question(render_template("unauthorized2"))
+
     initCourseDf()
-    print(ask_session.attributes["coursedf"])
     coursedf = pd.read_json(ask_session.attributes["coursedf"])
 
     userCourseNames = coursedf['name']
@@ -199,6 +226,9 @@ def getClasses():
 
 @ask.intent("WhatAreMyUpcomingAssignmentsIntent", default={'numdays': 5}, convert={'numdays': int})
 def getAssignments(numdays):
+    if ask_session.attributes.get("userID") is None:
+        return question(render_template("unauthorized2"))
+
     initCourseDf()
     coursedf = pd.read_json(ask_session.attributes["coursedf"])
 
@@ -220,12 +250,15 @@ def getAssignments(numdays):
 
     ask_session.attributes["userAssignments"] = userAssignments
 
-    assignments_message = f"You have {len(userAssignmentsList)} assignments due soon. Do you want to know exactly what they are?"
+    assignments_message = f"You have {len(userAssignmentsList)} assignments due in the next {numdays} days. Do you want to know exactly what they are?"
 
     return question(assignments_message)
 
 @ask.intent("WhatAreMyUpcomingEventsIntent", default={'numdays': 5}, convert={'numdays': int})
 def getEvents(numdays):
+    if ask_session.attributes.get("userID") is None:
+        return question(render_template("unauthorized2"))
+
     initCourseDf()
     coursedf = pd.read_json(ask_session.attributes["coursedf"])
 
@@ -243,16 +276,19 @@ def getEvents(numdays):
         
     userEvents = ", ".join(list(all_upcoming_events['title'])).replace(':', '').replace('&', 'and').replace('-', ' ').replace('/', '')
 
-    ask_session.attributes["binaryQuestion"] = "list_assignments"
+    ask_session.attributes["binaryQuestion"] = "list_events"
 
     ask_session.attributes["userEvents"] = userEvents
 
-    assignments_message = f"You have {len(userEventsList)} assignments due soon. Do you want to know exactly what they are?"
+    events_message = f"You have {len(userEventsList)} events in the next {numdays} days. Do you want to know exactly what they are?"
 
     return question(events_message)
                                 
 @ask.intent("WhatAreMyGradesIntent")
 def getGrades():
+    if ask_session.attributes.get("userID") is None:
+        return question(render_template("unauthorized2"))
+
     initCourseDf()
     coursedf = pd.read_json(ask_session.attributes["coursedf"])
 
@@ -265,6 +301,9 @@ def getGrades():
 
 @ask.intent("SetCalendarIntent", default={'date': datetime.today().strftime('%Y-%m-%d'), 'time': '12:00'})
 def setCalendar(title, date, time):
+    if ask_session.attributes.get("userID") is None:
+        return question(render_template("unauthorized2"))
+
     #hard coded to EST, needs adjustment for the future if this ever gets built on
     add4 = str(int(time[:2]) + 4)
     endhour = str(int(time[:2]) + 5)
@@ -291,6 +330,9 @@ def setCalendar(title, date, time):
 
 #function to init coursedf in session attributes
 def initCourseDf():
+    if ask_session.attributes.get("userID") is None:
+        return question(render_template("unauthorized2"))
+
     if ask_session.attributes.get("coursedf") is None:
         courses = requests.get('https://canvas.instructure.com/api/v1/courses?per_page=100&include[]=total_scores', headers=ask_session.attributes["headers"])
         coursedf = pd.json_normalize(courses.json())

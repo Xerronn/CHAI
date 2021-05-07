@@ -40,6 +40,14 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('Username has already been registered')
 
 
-class TokenForm(FlaskForm):
-    token = StringField("Token", validators=[DataRequired()])
+class SettingsForm(FlaskForm):
+    token = StringField("Token")
+    passphrase = StringField("Passphrase")
     submit = SubmitField('Set Token')
+
+    def validate_passphrase(self, field):
+        if field.data != "":
+            if not field.data.isnumeric():
+                raise ValidationError("Passphrase must be a four digit number")
+            if int(field.data) > 9999 or int(field.data) < 1000:
+                raise ValidationError("Passphrase must be a four digit number")
