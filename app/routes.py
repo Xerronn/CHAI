@@ -224,7 +224,33 @@ def getAssignments(numdays):
 
     return question(assignments_message)
 
+@ask.intent("WhatAreMyUpcomingEventsIntent", default={'numdays': 5}, convert={'numdays': int})
+def getEvents(numdays):
+    initCourseDf()
+    coursedf = pd.read_json(ask_session.attributes["coursedf"])
 
+    today = datetime.today()
+    futuredays = today + timedelta(days=numdays)
+    todaystr = today.strftime("%Y-%m-%d")
+    futurestr = futuredays.strftime("%Y-%m-%d")
+
+    userEventsList = []
+    for i in coursedf['id']:
+        upcoming = requests.get(f'https://canvas.instructure.com/api/v1/users/{ask_session.attributes["userID"]}/calendar_events?per_page=100&start_date={todaystr}&end_date={futurestr}&context_codes[]=course_{i}&type=event', headers=ask_session.attributes["headers"])
+        userEventsList.append(pd.json_normalize(upcoming.json()))    
+    all_upcoming_events = pd.concat(userEventsList)
+    all_upcoming_events = all_upcoming_events.sort_values(by = ['start_at'])
+        
+    userEvents = ", ".join(list(all_upcoming_events['title'])).replace(':', '').replace('&', 'and').replace('-', ' ').replace('/', '')
+
+    ask_session.attributes["binaryQuestion"] = "list_assignments"
+
+    ask_session.attributes["userEvents"] = userEvents
+
+    assignments_message = f"You have {len(userEventsList)} assignments due soon. Do you want to know exactly what they are?"
+
+    return question(events_message)
+                                
 @ask.intent("WhatAreMyGradesIntent")
 def getGrades():
     initCourseDf()
