@@ -3,12 +3,22 @@ body {
     font: 18px Arial;
 }
 h1 {
-    text-align:center;
+    text-align:left;
 	color: Black;
 	font: 30px Arial;
 	
 }
+h2 {
+    margin: left;
+	color: Black;
+	font: 14px Arial;
+	
+}
 
+form {
+	margin: auto;
+	text-align:center;
+}
 
 
 .container {
@@ -16,10 +26,13 @@ h1 {
 }
 
 .container__sidebar {
-    width: 30%;
+    width: 15%;
 }
 
 .container__main {
+	margin: auto
+	text-align:center;
+	
     /* Take the remaining width */
     flex: 1;
 
