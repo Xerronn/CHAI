@@ -25,6 +25,8 @@ class RegistrationForm(FlaskForm):
 
     def validate_username(self, field):
         user = User.query.filter_by(username=field.data).first()
+        if not field.data.isalnum():
+            raise ValidationError('Username must not contain any special characters')
         if user is not None:
             raise ValidationError('Username has already been registered')
 
