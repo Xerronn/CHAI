@@ -3,13 +3,13 @@ body {
     font: 18px Arial;
 }
 h1 {
-    text-align:left;
+    text-align: center;
 	color: Black;
 	font: 30px Arial;
 	
 }
 h2 {
-    margin: left;
+    text-align: center;
 	color: Black;
 	font: 14px Arial;
 	
@@ -17,7 +17,7 @@ h2 {
 
 form {
 	margin: auto;
-	text-align:center;
+	text-align: center;
 }
 
 
@@ -26,12 +26,12 @@ form {
 }
 
 .container__sidebar {
-    width: 15%;
+    width: 25%;
 }
 
 .container__main {
 	margin: auto
-	text-align:center;
+	text-align: ;
 	
     /* Take the remaining width */
     flex: 1;
