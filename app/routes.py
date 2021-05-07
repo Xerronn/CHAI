@@ -1,7 +1,7 @@
 from app import app, ask, db
 from app.forms import LoginForm, VerificationForm, RegistrationForm, TokenForm
 from app.models import User, Echo
-from flask import redirect, render_template, url_for, session, flash
+from flask import redirect, render_template, url_for, session, flash, request as flask_request
 from flask_ask import statement, question, request, context, session as ask_session
 from flask_login import current_user, login_user, logout_user, login_required
 from random import randint
@@ -79,6 +79,7 @@ def logout():
 
 
 @ask.launch
+@ask.intent('VerifiedIntent')
 def init():
     #check if the echo has an account registered in the database
     existingEcho = db.session.query(Echo.id).filter(Echo.echo_id == context.System.device.deviceId, Echo.verified == True).first()
@@ -93,15 +94,18 @@ def init():
         ask_session.attributes["binaryQuestion"] = "register_account"
         ask_session.attributes["echoID"] = context.System.device.deviceId
     else:
+        #see if current user has a canvas api token set
         userToken = db.session.query(User.token).filter(User.echo == existingEcho[0]).first()[0]
-        print(userToken)
         if userToken is None:
             message = render_template('noToken')
+            cardText = f"Navigate to {flask_request.url_root}token and follow the instructions. Say verified when you are done."
         else:
-            message = userToken
-            # welcome_msg = render_template('intro')
-            # help_msg = render_template('help')
-            # message = welcome_msg + ' ' + help_msg
+            ask_session.attributes["token"] = userToken
+            ask_session["user"] = db.session.query(User).filter(User.echo == existingEcho[0]).first()
+            print(ask_session["user"])
+            welcome_msg = render_template('intro') + ', ' + ask_session["user"].username + "."
+            help_msg = render_template('help')
+            message = welcome_msg + ' ' + help_msg
             cardText = "Welcome to CHAI"
 
     return question(message).simple_card(title="ChAI", content=cardText)
@@ -126,27 +130,35 @@ def stop():
 @ask.intent("AMAZON.YesIntent")
 def yes():
     binaryQuestion = ask_session.attributes["binaryQuestion"]
+    cardText = ""
 
     #ugh why does python not have a switch
     if binaryQuestion == "list_assignments":
         yes_message = f"Your upcoming assignments are {userAssignments}"
+
     elif binaryQuestion == "register_account":
-        
         existingCode = db.session.query(Echo.code).filter(Echo.echo_id == context.System.device.deviceId).first()
         if existingCode is None: 
             #create a new echo entry, and a verification code
-            randomCode = randint(10000,99999)
+            randomCode = randint(100000, 999999)
             newEcho = Echo(echo_id=ask_session.attributes["echoID"], code=randomCode)
             db.session.add(newEcho)
             db.session.commit()
-            yes_message = str(randomCode)
+            yes_message = f"Navigate to {addCommas(addSpaces(flask_request.url_root))}verify, and enter in the following code" + ': ' + addPeriods(addSpaces(str(randomCode)))
+            yes_message += ". Say 'verified' when you are done."
+            cardText = f"Navigate to {flask_request.url_root}verify and enter in the following code" + ': ' + str(randomCode)
+            
         else:
             #if the user has already tried to connect once but failed to verify
-            yes_message = str(existingCode[0])
+            yes_message = f"Navigate to {addCommas(addSpaces(flask_request.url_root))}verify, and enter in the following code" + ': ' + addPeriods(addSpaces(str(existingCode[0])))
+            yes_message += ". Say 'verified' when you are done."
+            cardText = f"Navigate to {flask_request.url_root}verify and enter in the following code" + ': ' + str(existingCode[0])
     else:
         yes_message = render_template('help')
+        cardText = render_template('help')
     
-    return question(yes_message)
+    #Error: not rendering new cards?
+    return question(yes_message).reprompt(yes_message).simple_card(title="ChAI", content=cardText)
 
 @ask.intent("WhatAreMyClassesIntent")
 def getClasses():
@@ -170,6 +182,32 @@ def getGrades():
     grades_message = f"Your grades are {userGrades}"
 
     return question(grades_message)
+
+#helper function to take a string and insert spaces between each letter so alexa pronounces the letters
+def addSpaces(s):
+    s = s.replace("", " ")
+    s = s.replace(".", "dot")
+    s = s.replace(":", "colon")
+    s = s.replace("/", "slash")
+    return s
+
+#helper function that adds periods so alexa takes longer to pronounce
+def addPeriods(s):
+    ns = ""
+    for i in range(len(s)):
+        if s[i].isnumeric():
+            ns = ns + s[i] + ". "
+    return ns
+
+#helper function that adds commas so alexa takes slightly longer to pronounce
+def addCommas(s):
+    ns = ""
+    for i in range(len(s)):
+        if s[i] == " ":
+            ns = ns + " ," + s[i]
+        else:
+            ns = ns + s[i]
+    return ns
 
 
 if __name__ == '__main__':
