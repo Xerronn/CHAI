@@ -1,0 +1,6 @@
+This following folder is essentially the structure of the entire project.
+This folder contains 5 different files
+_init_.py = initializes/startes the entuire course of the app
+forms.py = shows and sets up the user login and registers the user for app
+models.py =initializes the user model and gets the echo set up and defines the objects in the database
+routes.py = sets the token for the Alexa aplication as well as sets the login, verify the information from login and gets the various assignments and grades for the student at use.
