@@ -5,6 +5,10 @@ from flask import redirect, render_template, url_for, session, flash, request as
 from flask_ask import statement, question, request, context, session as ask_session
 from flask_login import current_user, login_user, logout_user, login_required
 from random import randint
+import requests
+import pandas as pd
+from datetime import datetime
+
 
 @app.route('/')
 def index():
@@ -94,15 +98,28 @@ def init():
         ask_session.attributes["binaryQuestion"] = "register_account"
         ask_session.attributes["echoID"] = context.System.device.deviceId
     else:
-        #see if current user has a canvas api token set
-        userToken = db.session.query(User.token).filter(User.echo == existingEcho[0]).first()[0]
+        #Get the user account linked to the echo
+        ask_session["user"] = db.session.query(User).filter(User.echo == existingEcho[0]).first()
+
+        #check if the user has set a token
+        userToken = ask_session["user"].token
         if userToken is None:
             message = render_template('noToken')
             cardText = f"Navigate to {flask_request.url_root}token and follow the instructions. Say verified when you are done."
         else:
-            ask_session.attributes["token"] = userToken
-            ask_session["user"] = db.session.query(User).filter(User.echo == existingEcho[0]).first()
-            print(ask_session["user"])
+            #set the headers for any api queries that follow
+            ask_session.attributes["headers"] = {"Authorization": "Bearer " + userToken}
+            canvasUser = requests.get('https://canvas.instructure.com/api/v1/users/self/profile', headers=ask_session.attributes["headers"])
+
+            #check if user token is authorized
+            if canvasUser.status_code == 401:
+                message = render_template('unauthorized')
+                cardText = render_template('unauthorized')
+                return statement(message).simple_card(title="ChAI", content=cardText)
+
+            canvasUserDf = pd.json_normalize(canvasUser.json())
+            ask_session.attributes["userID"] = int(canvasUserDf['id'])
+
             welcome_msg = render_template('intro') + ', ' + ask_session["user"].username + "."
             help_msg = render_template('help')
             message = welcome_msg + ' ' + help_msg
@@ -134,7 +151,7 @@ def yes():
 
     #ugh why does python not have a switch
     if binaryQuestion == "list_assignments":
-        yes_message = f"Your upcoming assignments are {userAssignments}"
+        yes_message = f"Your upcoming assignments are {ask_session.attributes['userAssignments']}"
 
     elif binaryQuestion == "register_account":
         existingCode = db.session.query(Echo.code).filter(Echo.echo_id == context.System.device.deviceId).first()
@@ -160,8 +177,14 @@ def yes():
     #Error: not rendering new cards?
     return question(yes_message).reprompt(yes_message).simple_card(title="ChAI", content=cardText)
 
+
 @ask.intent("WhatAreMyClassesIntent")
 def getClasses():
+    initCourseDf()
+    print(ask_session.attributes["coursedf"])
+    coursedf = pd.read_json(ask_session.attributes["coursedf"])
+
+    userCourseNames = coursedf['name']
     #get all the names of current courses in one big alexa friendly string
     classes_message = ", ".join(list(userCourseNames))
     
@@ -170,7 +193,20 @@ def getClasses():
 
 @ask.intent("WhatAreMyUpcomingAssignmentsIntent")
 def getAssignments():
+    initCourseDf()
+    coursedf = pd.read_json(ask_session.attributes["coursedf"])
+
+    userAssignmentsList = []
+    for i in coursedf['id']:
+        upcoming = requests.get(f'https://canvas.instructure.com/api/v1/courses/{i}/assignments?bucket=upcoming', headers=ask_session.attributes["headers"])
+        userAssignmentsList.append(pd.json_normalize(upcoming.json()))    
+    all_upcoming_assignments = pd.concat(userAssignmentsList)
+        
+    userAssignments = ", ".join(list(all_upcoming_assignments['name'])).replace(':', '').replace('&', 'and').replace('-', ' ').replace('/', '')
+
     ask_session.attributes["binaryQuestion"] = "list_assignments"
+
+    ask_session.attributes["userAssignments"] = userAssignments
 
     assignments_message = f"You have {len(userAssignmentsList)} assignments due soon. Do you want to know exactly what they are?"
 
@@ -179,9 +215,31 @@ def getAssignments():
 
 @ask.intent("WhatAreMyGradesIntent")
 def getGrades():
+    initCourseDf()
+    coursedf = pd.read_json(ask_session.attributes["coursedf"])
+
+    grades = [str(x["enrollments"][0]["computed_current_score"]) + " in " + x["name"] for x in coursedf.iloc]
+    userGrades = ", ".join(grades)
     grades_message = f"Your grades are {userGrades}"
 
     return question(grades_message)
+
+
+#function to init coursedf in session attributes
+def initCourseDf():
+    if ask_session.attributes.get("coursedf") is None:
+        courses = requests.get('https://canvas.instructure.com/api/v1/courses?per_page=100&include[]=total_scores', headers=ask_session.attributes["headers"])
+        coursedf = pd.json_normalize(courses.json())
+        coursedf = coursedf[list(set(["id", "name", "original_name", "course_code", "start_at", "created_at", "enrollment_term_id", "calendar.ics", "enrollments"]) & set(coursedf.columns))]
+        coursedf = coursedf[coursedf['name'].notna()]
+        coursedf = coursedf[coursedf['start_at'].notna()]
+        coursedf['start_at'] = coursedf['start_at'].apply(lambda x: datetime.strptime(x[:-1], "%Y-%m-%dT%H:%M:%S") if type(x) == str else x)
+        coursedf['name'] = coursedf['name'].apply(lambda x: x.replace(':', '-').replace('_', ' ').replace('&', 'and').split('-')[-1])
+        coursedf = coursedf.drop(coursedf[coursedf['start_at'] < datetime.strptime("2021-01-01T05:00:00", "%Y-%m-%dT%H:%M:%S")].index)
+        coursedf.reset_index(drop=True, inplace = True)
+        ask_session.attributes["coursedf"] = coursedf.to_json()
+        return True
+    return False
 
 #helper function to take a string and insert spaces between each letter so alexa pronounces the letters
 def addSpaces(s):
