@@ -4,7 +4,7 @@
 	  <link rel="icon" href="{{ url_for('static', filename='styling.css') }}">
 	  <link rel="stylesheet" href="{{ url_for('static', filename='styling.css') }}">
     </head>
-    <body>
+        <body>
 		<h1>
 			Canvas Home Assistant Integration
 		</h1>
@@ -13,9 +13,8 @@
 			Sam Carlson, Tyler Ho, Dylan Jezo, Zach Onisick, Sebastian Palacios, Jeffrey Ponce
 		</h2>
         <hr>	
-				<div class="container">
-			<!-- Sidebar -->
-			<aside class="container__sidebar">
+		<div class="container">
+			<main class="container__main">
 				<a href="{{ url_for('index') }}">Home</a>
 				{% if current_user.is_anonymous %}
 				<a href="{{ url_for('login') }}">Login</a>
@@ -24,11 +23,7 @@
 				<a href="{{ url_for('setToken') }}">Set Token</a>
 				<a href="{{ url_for('logout') }}">Logout</a>
 				{% endif %}
-				{% block content %}{% endblock %}
-			</aside>
-			
-			<!-- Main -->
-			<main class="container__main">
+			<hr>
 				{% with messages = get_flashed_messages() %}
 				{% if messages %}
 				<ul>
@@ -38,8 +33,9 @@
 				</ul>
 				{% endif %}
 				{% endwith %}
+				
+				{% block content %}{% endblock %}
 			</main>
 		</div>
     </body>
 </html>
-
